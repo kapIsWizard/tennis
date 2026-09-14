@@ -62,3 +62,9 @@ Po wejściu w widok szczegółów konkretnej ligi, użytkownik musi mieć dostę
 * **Przełącznik formatu decydującego seta:** Ze względu na specyfikę opisaną w punkcie 3, formularz musi pozwalać użytkownikowi na zdefiniowanie, w jakim formacie rozegrano trzeciego seta (np. poprzez przełącznik/checkbox: "Super Tie-break" / "Zwykły set"). 
 * **Ochrona statystyk:** Rozróżnienie to jest kluczowe dla logiki systemowej. Aplikacja musi wiedzieć, że wartości np. "10:8" z Super Tie-breaka to małe punkty, a nie pełne gemy. Dzięki temu statystyki w Tabeli Klasycznej (bilans gemów) nie zostaną sztucznie zawyżone i sfałszowane. 
 * **Spójność danych:** W przypadku Ligi Nieskończonej (Ranking ELO) szczegółowy bilans gemów ma drugorzędne znaczenie dla algorytmu, jednak aplikacja powinna zbierać te dane w identyczny sposób (dla zachowania czytelnej historii meczów i jednolitości interfejsu).
+
+## 6. TODO
+- System bukmacherski
+
+## 7. Out of scope
+- Tworzenie turniejów
