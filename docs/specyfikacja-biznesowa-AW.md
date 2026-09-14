@@ -9,7 +9,7 @@ Na obecnym etapie aplikacja skupia się w 100% na kompleksowej obsłudze **Tenis
 ---
 
 ## 1. Założenia ogólne i Baza graczy
-
+* **Otwarty dostęp (Brak systemu uprawnień):** Wersja MVP aplikacji nie posiada systemu ról (brak podziału na administratorów i zwykłych użytkowników) ani konieczności logowania. Każda osoba, która wejdzie na stronę, ma pełen dostęp do wszystkich funkcji: może dowolnie przeglądać statystyki, dodawać nowych graczy, tworzyć ligi, a także wprowadzać i edytować wyniki meczów.
 * **Gotowość na nowe sporty (Future-Proofing):** System od początku musi wiedzieć, jakiego sportu dotyczy dany mecz/liga, aby prawidłowo dobrać formularz wyników i algorytmy przeliczania tabel.
 * **Jedna wspólna baza graczy:** Gracze dodawani są do systemu globalnie (Imię, nazwisko, pseudonim oraz możliwość wgrania awatara). Raz dodany gracz staje się częścią globalnego rejestru i może być przypisywany do wielu różnych lig w dowolnych dyscyplinach. 
 
@@ -39,14 +39,14 @@ Mecze zawsze gramy do 2 wygranych setów (Best of 3). Formularz wprowadzania wyn
 
 * **W Lidze Klasycznej (Round-Robin):** 
   Tabela generuje się automatycznie na podstawie rozegranych meczów. Punktacja za poszczególne mecze jest stała i wynosi:
-  * **Wygrana 2:0** – zwycięzca otrzymuje **5 pkt**, przegrany **1 pkt**.
+  * **Wygrana 2:0** – zwycięzca otrzymuje **5 pkt**, przegrany **0 pkt**.
   * **Wygrana 2:1** – zwycięzca otrzymuje **4 pkt**, przegrany **2 pkt**.
   
   Tabela musi dodatkowo uwzględniać statystyki pomocnicze:
   * Liczbę rozegranych meczów
   * Bilans wygranych do przegranych setów
   * Bilans wygranych do przegranych gemów
-  * *Zasada remisów:* W przypadku takiej samej liczby punktów o miejscu w tabeli decyduje wynik bezpośredniego starcia (H2H).
+  * *Zasada remisów:* W przypadku takiej samej liczby punktów o miejscu w tabeli decyduje bilans gemów.
 
 * **W Lidze Nieskończonej (Ranking ELO):**
   * **Start:** Poziom bazowy (startowy) dla każdego gracza w nowej lidze wynosi **1000 punktów**.
