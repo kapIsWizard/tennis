@@ -65,7 +65,6 @@ Po wejściu w widok szczegółów konkretnej ligi, użytkownik musi mieć dostę
 * **Spójność danych:** W przypadku Ligi Nieskończonej (Ranking ELO) szczegółowy bilans gemów ma drugorzędne znaczenie dla algorytmu, jednak aplikacja powinna zbierać te dane w identyczny sposób (dla zachowania czytelnej historii meczów i jednolitości interfejsu).
 
 ## 6. TODO
-- System bukmacherski
 
 ## 7. Out of scope
 - Tworzenie turniejów
