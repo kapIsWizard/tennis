@@ -1,7 +1,7 @@
 # Low On Legs — szczegółowa specyfikacja biznesowa, funkcjonalna i techniczna
 
-**Wersja dokumentu:** 0.1  
-**Status:** wersja robocza do zatwierdzenia  
+**Wersja dokumentu:** 0.2
+**Status:** zatwierdzone decyzje P0, pozostałe decyzje interfejsowe otwarte
 **Źródło nadrzędne:** [`docs/base-specification.md`](./base-specification.md)  
 **Zakres produktu:** MVP dla tenisa ziemnego  
 **Stos technologiczny:** Next.js + TypeScript + MikroORM + PostgreSQL
@@ -16,7 +16,7 @@ Obowiązują trzy zasady:
 
 1. `base-specification.md` jest źródłem prawdy. W razie sprzeczności ma pierwszeństwo przed tym dokumentem.
 2. Specyfikacja nie dodaje nowych modułów produktowych. Doprecyzowuje tylko zachowanie konieczne do realizacji istniejącego zakresu.
-3. Niejednoznaczności, których nie da się rozstrzygnąć logicznie, są wymienione w sekcji „Otwarte decyzje”.
+3. Zatwierdzone rozstrzygnięcia są zapisane w rejestrze decyzji, a pozostałe niejednoznaczności w sekcji „Otwarte decyzje P1”.
 
 ## 2. Streszczenie rozwiązania
 
@@ -118,6 +118,12 @@ Brak logowania jest wymaganiem MVP, nie przeoczeniem. Wszystkie mutacje są publ
 12. Zmiana historycznego wyniku nie może pozostawić późniejszych ratingów wyliczonych ze starego stanu.
 13. Numer kolejki nie ogranicza możliwości zapisania wyniku.
 14. Historyczny mecz przechowuje reguły punktacji obowiązujące przy jego zapisie.
+15. Klasyczna liga deblowa składa się ze stałych par utworzonych przed wygenerowaniem terminarza.
+16. Nieskończona liga deblowa nie ma stałych par i klasyfikuje wyłącznie graczy.
+17. Zwykły tie-break kończący set nie przechowuje małych punktów.
+18. Małe punkty są dozwolone wyłącznie w trzecim secie oznaczonym jako super tie-break.
+19. Rating Elo nigdy nie spada poniżej 500.
+20. Chronologię Elo wyznacza nieedytowalny czas pierwszego zapisania wyniku meczu.
 
 ## 5. Dostęp i aktorzy
 
@@ -203,7 +209,7 @@ Konfiguracja zależna od rodzaju:
 |---|---:|---:|
 | Rewanże | wymagany wybór tak/nie | nie dotyczy |
 | Sugerowane kolejki | generowane | brak |
-| Parametr K | nie dotyczy | wymagany |
+| Parametr K | nie dotyczy | domyślnie 32, zakres 10–60 |
 | Startowy rating 1000 | nie dotyczy | automatyczny |
 | Tabela punktowa | tak | nie |
 | Ranking Elo | nie | tak |
@@ -229,6 +235,10 @@ Stan „zakończona” służy prezentacji i filtrowaniu. Nie wprowadza uprawnie
 **LGE-08.** Każda zmiana uczestników musi zachować historyczne mecze graczy, którzy przestali być aktywnymi uczestnikami.  
 **LGE-09.** Wartości konfiguracyjne użyte do obliczeń są wersjonowane lub zapisywane przy meczu, aby późniejsza edycja ustawień nie zmieniała po cichu historii.
 
+**LGE-10.** Po wygenerowaniu terminarza klasycznej ligi nie można dodać nowego gracza ani zmienić składu stałej pary.
+
+**LGE-11.** Do ligi nieskończonej można dodawać graczy w dowolnym momencie; każdy nowy uczestnik zaczyna od 1000 Elo.
+
 ## 8. Liga klasyczna
 
 ### 8.1. Generowanie puli meczów
@@ -241,7 +251,7 @@ Dla `n` uczestników/stron:
 - żadna strona nie występuje więcej niż raz w tej samej sugerowanej kolejce;
 - rewanże trafiają do drugiej części harmonogramu i mają odwrócone oznaczenie stron.
 
-W singlu uczestnikiem terminarza jest gracz. Dla klasycznego debla specyfikacja przyjmuje roboczo stałe pary jako uczestników round-robin; to założenie wymaga zatwierdzenia.
+W singlu uczestnikiem terminarza jest gracz. W klasycznym deblu uczestnikiem jest stała para utworzona przed wygenerowaniem terminarza.
 
 ### 8.2. Znaczenie kolejki
 
@@ -268,6 +278,8 @@ W lidze klasycznej użytkownik wybiera istniejący, niezakończony mecz z wygene
 **CLS-08.** Miękkie usunięcie meczu wyklucza go z tabeli, ale zachowuje dane wyniku.  
 **CLS-09.** System pokazuje liczbę wszystkich, rozegranych i pozostałych spotkań.
 
+**CLS-10.** Po wygenerowaniu terminarza lista uczestników oraz składy par są zablokowane.
+
 ## 9. Liga nieskończona Elo
 
 ### 9.1. Charakter ligi
@@ -286,6 +298,8 @@ Te same strony mogą grać ze sobą dowolną liczbę razy.
 
 Każdy gracz po dołączeniu do ligi otrzymuje `1000` punktów. Rating nie jest pobierany z profilu globalnego ani z innej ligi.
 
+Do ligi można dodać nowego gracza w dowolnym momencie. Dołączenie gracza nie przelicza wcześniejszych meczów pozostałych uczestników.
+
 ### 9.3. Obliczenie Elo
 
 Dla singla:
@@ -300,10 +314,10 @@ gdzie:
 - `R_A`, `R_B` — ratingi przed meczem;
 - `E_A` — oczekiwane prawdopodobieństwo wyniku strony A;
 - `S_A` — `1` dla zwycięstwa i `0` dla porażki;
-- `K` — parametr ligi;
+- `K` — parametr ligi z zakresu 10–60, domyślnie 32;
 - zmiana strony B ma przeciwny znak.
 
-Wynik 2:0 i 2:1 ma taki sam wpływ na Elo; liczy się wyłącznie zwycięzca meczu.
+Surową zmianę zaokrągla się do pełnej liczby matematycznie, z połówkami od zera: `+15,5 → +16`, `−15,5 → −16`. Wynik 2:0 i 2:1 ma taki sam wpływ na Elo; liczy się wyłącznie zwycięzca meczu.
 
 Dla debla:
 
@@ -314,16 +328,26 @@ R_B = (R_B1 + R_B2) / 2
 
 Następnie stosuje się ten sam wzór. Każdy z dwóch graczy zwycięskiej strony otrzymuje taką samą dodatnią zmianę, a każdy z dwóch przegranych taką samą zmianę ujemną.
 
+Po zastosowaniu zmiany rating każdego gracza jest ograniczany od dołu do 500:
+
+```text
+newRating = max(500, oldRating + roundedDelta)
+```
+
+Jeśli przegrywający gracz osiągnął dolną granicę, jego faktyczna strata może być mniejsza od zmiany zwycięzcy. W pobliżu granicy system Elo nie musi być więc sumą zerową.
+
 ### 9.4. Historia i kolejność
 
 - każdy mecz zapisuje rating przed, zmianę i rating po dla każdego gracza;
-- kolejność obliczeń wynika z czasu rozegrania, a przy identycznym czasie z kolejności utworzenia rekordu;
-- parametr K użyty przy obliczeniu jest zapisywany przy meczu/zdarzeniu ratingowym;
+- użytkownik nie podaje daty rozegrania;
+- kolejność obliczeń wynika z nieedytowalnego `resultRecordedAt`, nadawanego przez system przy pierwszym zapisaniu wyniku; identyfikator meczu jest technicznym tie-breakerem, gdy znaczniki czasu są równe;
+- parametr K obowiązujący przy pierwszym zapisaniu wyniku jest zapisywany przy meczu i zdarzeniu ratingowym;
+- późniejsza zmiana K nie modyfikuje snapshotów istniejących meczów ani nie uruchamia przeliczenia;
 - bieżący ranking jest wynikiem wszystkich zakończonych, nieusuniętych meczów w kolejności chronologicznej.
 
 ### 9.5. Edycja historycznego meczu
 
-Edycja wyniku, uczestników, czasu rozegrania albo usunięcie meczu może zmienić ratingi wszystkich późniejszych spotkań. Operacja:
+Edycja wyniku lub uczestników albo usunięcie meczu może zmienić ratingi wszystkich późniejszych spotkań. Systemowy czas pierwszego zapisania wyniku nie podlega edycji. Operacja:
 
 1. zapisuje poprawiony mecz w transakcji;
 2. zwiększa numer rewizji Elo ligi;
@@ -338,8 +362,10 @@ Edycja wyniku, uczestników, czasu rozegrania albo usunięcie meczu może zmieni
 **ELO-01.** Liga nieskończona nie generuje terminarza.  
 **ELO-02.** Mecz można utworzyć wyłącznie z aktywnych uczestników ligi.  
 **ELO-03.** Każdy nowy uczestnik zaczyna od 1000.  
-**ELO-04.** Parametr K jest wymagany i dodatni.  
-**ELO-05.** Zapis pierwszego meczu aktualizuje wszystkie cztery lub dwa ratingi w jednej transakcji.  
+**ELO-04.** Parametr K ma wartość domyślną 32 i musi być liczbą całkowitą od 10 do 60.
+
+**ELO-05.** Zapis nowego meczu aktualizuje wszystkie cztery lub dwa ratingi w jednej transakcji.
+
 **ELO-06.** Dla debla siłą strony jest średnia ratingów jej dwóch graczy.  
 **ELO-07.** Każdy gracz strony otrzymuje tę samą wartość zmiany zespołowej.  
 **ELO-08.** Ranking sortuje aktywnych uczestników malejąco według bieżącego ratingu.  
@@ -347,6 +373,14 @@ Edycja wyniku, uczestników, czasu rozegrania albo usunięcie meczu może zmieni
 **ELO-10.** W czasie przeliczenia interfejs pokazuje jednoznaczny stan i nie udaje, że ranking jest aktualny.  
 **ELO-11.** Powtórzenie zadania nie może podwoić zmian ratingu.  
 **ELO-12.** Awaria zadania nie publikuje częściowo przeliczonego rankingu.
+
+**ELO-13.** Rating po zastosowaniu zmiany nie może być niższy niż 500.
+
+**ELO-14.** Każdy mecz używa snapshotu K z chwili pierwszego zapisania jego wyniku.
+
+**ELO-15.** Zmiana K dotyczy wyłącznie wyników zapisanych po zmianie i nie przelicza historii.
+
+**ELO-16.** Nowego uczestnika można dodać w dowolnym momencie trwania ligi.
 
 ## 10. Singiel i debel
 
@@ -365,15 +399,17 @@ Edycja wyniku, uczestników, czasu rozegrania albo usunięcie meczu może zmieni
 - wszyscy czterej gracze otrzymują wpis historii ratingu;
 - formularz pokazuje dwie wyraźnie oddzielone pary.
 
-### 10.3. Robocze założenie dla klasycznego debla
+### 10.3. Stałe pary w klasycznym deblu
 
-Round-robin wymaga stabilnej definicji uczestnika. Do czasu decyzji biznesowej przyjmuje się:
+Round-robin używa stałej pary jako uczestnika:
 
 - podczas tworzenia klasycznej ligi deblowej użytkownik buduje stałe pary z wybranych graczy;
 - generator traktuje parę jak uczestnika tabeli i terminarza;
 - jeden gracz może należeć do jednej aktywnej pary w danej lidze;
 - tabela klasyfikuje pary;
 - zmiana składu pary po zapisaniu wyniku jest blokowana.
+
+Po wygenerowaniu terminarza zablokowane jest również dodanie nowego gracza i utworzenie nowej pary.
 
 Liga nieskończona deblowa nie wymaga stałych par: dowolnych czterech aktywnych uczestników można zestawić przy każdym meczu.
 
@@ -398,22 +434,22 @@ Przed meczem wybierany jest jeden wspólny format pierwszych dwóch setów.
 - prawidłowe wyniki bez tie-breaka: `4:0`, `4:1`, `4:2` i odwrotne;
 - przy `3:3` rozgrywany jest tie-break;
 - końcowy wynik gemowy seta tie-breakowego to `4:3` albo `3:4`;
-- małe punkty tie-breaka mogą być zapisane oddzielnie, jeśli formularz je zbiera;
-- specyfikacja bazowa nie definiuje No-Ad ani zachowania letów serwisowych, więc MVP nie waliduje punktów wewnątrz gema.
+- system nie zbiera ani nie przechowuje małych punktów tego tie-breaka;
+- aplikacja nie rejestruje i nie waliduje No-Ad, letów serwisowych ani innych zasad punkt po punkcie.
 
 #### Set normalny
 
 - set rozgrywany do 6 gemów z przewagą dwóch;
 - prawidłowe wyniki obejmują `6:0`–`6:4`, `7:5` oraz `7:6`;
 - przy `6:6` rozgrywany jest tie-break do 7 punktów;
-- małe punkty tie-breaka mogą być zapisane oddzielnie;
+- system zapisuje końcowy wynik seta jako `7:6` albo `6:7` i nie zbiera małych punktów tie-breaka;
 - wynik `6:5` nie kończy seta.
 
 ### 11.3. Trzeci set
 
 Przy stanie 1:1 użytkownik wybiera:
 
-1. **Super tie-break** — zapis małych punktów; zwycięzca osiąga co najmniej 10 punktów i przewagę dwóch, np. `10:8`, `12:10`;
+1. **Super tie-break** — jedyny przypadek, w którym formularz i baza zapisują małe punkty; zwycięzca osiąga co najmniej 10 punktów i przewagę dwóch, np. `10:8`, `12:10`;
 2. **Pełny set Fast4** — walidacja jak w krótkim secie;
 3. **Pełny set normalny** — walidacja jak w secie do sześciu gemów.
 
@@ -426,8 +462,9 @@ Wynik nie jest zapisywany jako jeden tekst. Każdy set ma:
 - wariant `FAST4` albo `NORMAL` dla seta gemowego;
 - wynik strony A;
 - wynik strony B;
-- opcjonalne małe punkty tie-breaka dla wyniku `4:3` lub `7:6`;
 - wyliczonego zwycięzcę seta.
+
+Pola `sideA` i `sideB` oznaczają gemy dla `GAME_SET`, a małe punkty wyłącznie dla `SUPER_TIE_BREAK`. Zwykłe tie-breaki kończące Fast4 lub normalny set nie mają osobnych pól.
 
 Przykład danych wejściowych:
 
@@ -460,12 +497,15 @@ Zgodnie ze specyfikacją bazową system nie ma specjalnego stanu ani algorytmu d
 **TEN-09.** Błędny wynik nie jest częściowo zapisywany.  
 **TEN-10.** Edycja korzysta z dokładnie tego samego walidatora co tworzenie.
 
+**TEN-11.** Małych punktów nie można zapisać dla seta gemowego, także gdy kończy się on wynikiem 4:3 albo 7:6.
+
+**TEN-12.** Aplikacja nie przechowuje przebiegu gema, No-Ad ani letów serwisowych.
+
 ## 12. Formularz meczowy
 
 ### 12.1. Pola wspólne
 
 - liga — wynika z bieżącego widoku;
-- data i czas rozegrania, domyślnie bieżące;
 - strona A;
 - strona B;
 - format pierwszych dwóch setów: Fast4/normalny;
@@ -474,6 +514,8 @@ Zgodnie ze specyfikacją bazową system nie ma specjalnego stanu ani algorytmu d
 - format trzeciego seta: super tie-break/Fast4/normalny;
 - pola wyniku trzeciego seta;
 - zapis lub anulowanie.
+
+Formularz nie zawiera pola daty rozegrania. Przy pierwszym zapisaniu wyniku baza nadaje `resultRecordedAt`, które jest prezentowane jako data meczu i wyznacza kolejność Elo. Późniejsza edycja nie zmienia tej wartości. Dla wygenerowanego meczu klasycznego `createdAt` oznacza jedynie czas utworzenia pozycji terminarza.
 
 ### 12.2. Zachowanie w lidze klasycznej
 
@@ -569,7 +611,11 @@ Każdy wpis zawiera:
 
 ### 14.3. Zaokrąglenie
 
-W bazie rating oraz zmiana są przechowywane jako liczby całkowite. Wynik wzoru jest zaokrąglany deterministycznie do najbliższej liczby całkowitej. Dokładna reguła dla wartości `.5` wymaga zatwierdzenia i testu kontraktowego.
+W bazie rating oraz zmiana są przechowywane jako liczby całkowite. Wynik wzoru jest zaokrąglany do najbliższej liczby całkowitej, z połówkami od zera: `+15,5 → +16`, `−15,5 → −16`. Reguła musi mieć test kontraktowy niezależny od domyślnego zachowania funkcji języka programowania.
+
+### 14.4. Dolna granica
+
+Rating po meczu nie może spaść poniżej 500. Historia zapisuje zarówno wyliczoną zmianę, jak i faktycznie zastosowaną zmianę, jeżeli ograniczenie zmniejszyło stratę. Przykład: rating 505 i wyliczone `−15` daje rating 500 oraz faktycznie zastosowane `−5`.
 
 ## 15. Statystyki
 
@@ -803,16 +849,16 @@ Rdzeń meczu nie otrzymuje kolumn `set1`, `set2` ani `superTieBreak`. Dane tenis
 | `sports` | `id`, `code`, `name` | seed `TENNIS`; kod unikalny |
 | `players` | `id`, `first_name`, `last_name`, `nickname`, `created_at`, `updated_at`, `deleted_at` | globalny gracz |
 | `player_avatars` | `player_id`, `mime_type`, `bytes`, `updated_at` | opcjonalny rekord 1:1 |
-| `leagues` | `id`, `sport_id`, `name`, `kind`, `game_mode`, `has_return_legs`, `elo_k`, `status`, `elo_revision`, `elo_state`, znaczniki czasu | constraints zależne od rodzaju |
+| `leagues` | `id`, `sport_id`, `name`, `kind`, `game_mode`, `has_return_legs`, `elo_k` (domyślnie 32), `status`, `elo_revision`, `elo_state`, znaczniki czasu | constraints zależne od rodzaju |
 | `league_players` | `id`, `league_id`, `player_id`, `current_elo`, `joined_at`, `deleted_at` | unikalne aktywne członkostwo |
 | `league_teams` | `id`, `league_id`, `display_name`, `deleted_at` | tylko klasyczny debel |
 | `league_team_players` | `team_id`, `player_id`, `position` | dokładnie dwie osoby |
-| `matches` | `id`, `league_id`, `status`, `round_number`, `leg_number`, `played_at`, `fixture_key`, `result_version`, `created_at`, `updated_at`, `deleted_at` | rekord wspólny |
+| `matches` | `id`, `league_id`, `status`, `round_number`, `leg_number`, `fixture_key`, `elo_k_snapshot`, `result_recorded_at`, `result_version`, `created_at`, `updated_at`, `deleted_at` | `result_recorded_at` jest automatyczną datą rozegrania i kolejnością Elo; `created_at` opisuje utworzenie rekordu |
 | `match_sides` | `id`, `match_id`, `side_number` | dokładnie strony 1 i 2 |
 | `match_side_players` | `side_id`, `player_id`, `position` | 1 albo 2 osoby zależnie od ligi |
 | `tennis_match_rules` | `match_id`, `opening_set_format`, `deciding_set_format` | snapshot formatu meczu |
-| `tennis_sets` | `id`, `match_id`, `set_order`, `kind`, `format`, `side_1_score`, `side_2_score`, opcjonalne punkty tie-breaka | wynik strukturalny |
-| `elo_rating_events` | `id`, `league_id`, `match_id`, `player_id`, `rating_before`, `expected_score`, `actual_score`, `k_factor`, `delta`, `rating_after`, `revision` | historia obliczeń |
+| `tennis_sets` | `id`, `match_id`, `set_order`, `kind`, `format`, `side_1_score`, `side_2_score` | wynik strukturalny; punkty oznaczają małe punkty tylko przy `SUPER_TIE_BREAK` |
+| `elo_rating_events` | `id`, `league_id`, `match_id`, `player_id`, `rating_before`, `expected_score`, `actual_score`, `k_factor`, `calculated_delta`, `applied_delta`, `rating_after`, `revision` | rozróżnia zmianę wzoru od ograniczenia na 500 |
 | `elo_recalculation_jobs` | `id`, `league_id`, `requested_revision`, `status`, `attempts`, `error`, `created_at`, `started_at`, `finished_at` | kolejka PostgreSQL |
 
 ### 21.2. Kluczowe constraints
@@ -823,10 +869,14 @@ Rdzeń meczu nie otrzymuje kolumn `set1`, `set2` ani `superTieBreak`. Dane tenis
 - `match_side_players`: gracz unikalny w obrębie meczu;
 - `tennis_sets`: unikalne `(match_id, set_order)` i `set_order BETWEEN 1 AND 3`;
 - wynik seta nieujemny;
-- `elo_k > 0` dla ligi Elo;
+- `elo_k BETWEEN 10 AND 60` dla ligi Elo i wartość domyślna 32;
+- `elo_k_snapshot BETWEEN 10 AND 60` dla zakończonego meczu Elo;
+- `rating_after >= 500` oraz `current_elo >= 500`;
 - `current_elo` obecne tylko dla aktywnego uczestnika ligi Elo;
 - klasyczna liga wymaga `has_return_legs`, a liga Elo wymaga `elo_k`;
 - `round_number` wymagany dla wygenerowanego meczu klasycznego i pusty dla ligi Elo;
+- `result_recorded_at` jest wymagany dla zakończonego meczu i pusty przed pierwszym zapisaniem wyniku;
+- `result_recorded_at` i `elo_k_snapshot` po pierwszym zapisaniu wyniku nie są zmieniane przez edycję;
 - częściowy unikalny indeks `fixture_key` w aktywnych meczach klasycznych zapobiega duplikatom.
 
 Reguły wymagające odczytu wielu tabel — np. liczba graczy strony zgodna z trybem ligi — są dodatkowo sprawdzane w serwisie domenowym w tej samej transakcji.
@@ -836,7 +886,7 @@ Reguły wymagające odczytu wielu tabel — np. liczba graczy strony zgodna z tr
 - aktywni gracze po pseudonimie i nazwisku;
 - aktywne ligi po rodzaju i dacie utworzenia;
 - mecze po `league_id`, `status`, `round_number`;
-- zakończone mecze Elo po `league_id`, `played_at`, `created_at`;
+- zakończone mecze Elo po `league_id`, `result_recorded_at`, `id`;
 - historia Elo po `(league_id, player_id, match_id)`;
 - jedno aktywne zadanie przeliczenia na ligę przez częściowy indeks dla statusów `PENDING/RUNNING`;
 - wszystkie główne listy z warunkiem `deleted_at IS NULL`.
@@ -884,7 +934,7 @@ GetMatchDetails
 W jednej transakcji wykonywane są co najmniej:
 
 - utworzenie ligi, uczestników/par oraz harmonogramu;
-- zapis meczu z dwiema stronami, uczestnikami, regułami i setami;
+- zapis meczu z dwiema stronami, uczestnikami, regułami i setami oraz automatyczne nadanie `resultRecordedAt` i snapshotu K;
 - bezpośrednia aktualizacja Elo po dodaniu najnowszego meczu;
 - edycja meczu oraz utworzenie zadania przeliczenia;
 - soft delete meczu oraz utworzenie zadania przeliczenia;
@@ -927,8 +977,8 @@ Worker działa jako osobny proces Node.js z tego samego repozytorium. Cyklicznie
 1. Pobierz zadanie `PENDING` i oznacz `RUNNING`.
 2. Zablokuj logicznie ligę na czas publikacji rewizji.
 3. Pobierz aktywnych uczestników i ustaw roboczo 1000.
-4. Pobierz wszystkie zakończone, nieusunięte mecze chronologicznie.
-5. Przelicz każde spotkanie oraz robocze zdarzenia ratingowe.
+4. Pobierz wszystkie zakończone, nieusunięte mecze według `resultRecordedAt`, a następnie `id`.
+5. Przelicz każde spotkanie z jego snapshotem K, regułą zaokrąglenia od zera i dolną granicą 500 oraz utwórz robocze zdarzenia ratingowe.
 6. Jeżeli rewizja ligi zmieniła się podczas pracy, odrzuć wynik i ponów dla najnowszej rewizji.
 7. W transakcji zastąp aktywną historię i bieżące ratingi.
 8. Oznacz zadanie `DONE` i ligę `CURRENT`.
@@ -1063,6 +1113,8 @@ Najwyższy priorytet:
 - dla 6 singlistów bez rewanżów powstaje 15 meczów;
 - dla 6 singlistów z rewanżami powstaje 30 meczów;
 - żaden gracz nie występuje dwukrotnie w jednej sugerowanej kolejce;
+- w klasycznym deblu terminarz i tabela używają stałych par;
+- po wygenerowaniu terminarza nie można dodać uczestnika ani zmienić pary;
 - można zapisać wynik meczu z dowolnej kolejki;
 - wynik 2:0 przyznaje 5 i 0 punktów;
 - wynik 2:1 przyznaje 4 i 2 punkty;
@@ -1073,9 +1125,14 @@ Najwyższy priorytet:
 
 - liga startuje bez meczów;
 - każdy uczestnik zaczyna z ratingiem 1000;
-- przy równych ratingach i `K=32` zwycięzca singla otrzymuje około `+16`, a przegrany `−16`, zgodnie z regułą zaokrąglenia;
+- domyślne K wynosi 32, a wartości poniżej 10 i powyżej 60 są odrzucane;
+- przy równych ratingach i `K=32` zwycięzca singla otrzymuje `+16`, a przegrany `−16`;
 - w równym deblu każdy zwycięzca otrzymuje tę samą dodatnią zmianę, a każdy przegrany tę samą ujemną;
 - drugi mecz korzysta z ratingów po pierwszym;
+- rating nigdy nie spada poniżej 500;
+- nowy gracz może dołączyć w dowolnym momencie i otrzymuje 1000;
+- zmiana K nie przelicza historii, a nowy mecz zapisuje aktualne K jako snapshot;
+- kolejność obliczeń wynika z systemowego czasu pierwszego zapisania wyniku oraz technicznie z `id` przy identycznym czasie;
 - edycja pierwszego meczu przelicza wszystkie późniejsze zdarzenia;
 - podczas przeliczenia UI nie pokazuje rankingu jako aktualnego;
 - awaria nie publikuje częściowych ratingów.
@@ -1085,11 +1142,14 @@ Najwyższy priorytet:
 - poprawny mecz 2:0 i 2:1 można zapisać;
 - nie można zapisać 1:1 ani 3:0;
 - Fast4 akceptuje `4:3`, ale odrzuca `3:3` jako wynik końcowy;
+- Fast4 nie przyjmuje małych punktów zwykłego tie-breaka;
 - normalny set akceptuje `7:6`, ale odrzuca `6:6` jako wynik końcowy;
+- normalny set akceptuje `7:5` i nie przyjmuje małych punktów zwykłego tie-breaka;
 - super tie-break `10:8` jest akceptowany i nie zwiększa gemów;
 - super tie-break `10:9` jest odrzucany;
 - zwycięzca wynika z setów;
 - wynik jest zapisany strukturalnie i może zostać ponownie otwarty do edycji.
+- formularz nie wymaga ani nie udostępnia ręcznej daty rozegrania.
 
 ### 28.5. Usuwanie
 
@@ -1111,27 +1171,29 @@ Najwyższy priorytet:
 9. Profile, statystyki i historia.
 10. Testy end-to-end, obsługa współbieżności i hardening otwartych mutacji.
 
-## 30. Otwarte decyzje przed implementacją
+## 30. Rejestr decyzji i pozostałe pytania
 
-### P0 — wpływają na model danych lub algorytm
+### 30.1. Decyzje zatwierdzone
 
-1. **Klasyczny debel:** czy uczestnikami ligi są stałe pary? Dokument przyjmuje ten wariant roboczo, bo bez niego „każdy z każdym” nie ma jednoznacznej definicji.
-2. **Fast4:** czy zbieramy małe punkty tie-breaka przy 3:3? Czy obowiązuje No-Ad i granie serwisu po lecie? Specyfikacja bazowa tego nie określa.
-3. **Normalny set:** czy set zawsze dopuszcza `7:5`, czy przy 6:6 zawsze kończy go standardowy tie-break do 7? Dokument zakłada obie klasyczne reguły.
-4. **K dla Elo:** jaka jest wartość domyślna i dozwolony zakres? Dokument wymaga tylko wartości dodatniej.
-5. **Zaokrąglenie Elo:** jak traktujemy dokładnie `.5` i czy dopuszczamy rating ujemny?
-6. **Zmiana K:** czy zmiana działa tylko dla nowych meczów, czy przelicza całą historię? Dokument rekomenduje snapshot K per mecz i brak retroakcji.
-7. **Kolejność Elo:** czy data rozegrania jest obowiązkowa? Dokument domyślnie używa daty rozegrania, a następnie kolejności utworzenia.
-8. **Zmiana uczestników ligi klasycznej:** czy jest dozwolona po wygenerowaniu terminarza lub pierwszym wyniku?
+| Obszar | Decyzja |
+|---|---|
+| Model debla | Liga Klasyczna używa stałych par utworzonych przed terminarzem. Liga Nieskończona pozwala dowolnie zestawiać pary z uczestników i prowadzi wyłącznie indywidualny ranking Elo. |
+| Fast4 | Zapisujemy tylko końcowy wynik seta w gemach, także `4:3`. Nie zbieramy małych punktów zwykłego tie-breaka ani zasad punkt po punkcie, No-Ad i letów serwisowych. |
+| Normalny set | Dozwolony jest wynik `7:5`; przy `6:6` rozgrywany jest tie-break, a wynik seta zapisujemy jako `7:6` bez małych punktów. |
+| Współczynnik K | Domyślnie `K = 32`; dozwolona wartość całkowita od `10` do `60`. |
+| Zaokrąglenie i minimum Elo | Zmianę zaokrąglamy matematycznie do liczby całkowitej, a dokładne połówki od zera. Rating nie może spaść poniżej `500`; nowy uczestnik zaczyna od `1000`. |
+| Zmiana K | Działa wyłącznie dla wyników zapisanych po zmianie. Każdy mecz przechowuje snapshot K, a wcześniejsza historia pozostaje bez zmian. |
+| Data i kolejność meczu | Użytkownik nie wpisuje daty. System nadaje `resultRecordedAt` przy pierwszym zapisaniu wyniku; wartość nie zmienia się przy edycji i wraz z `id` wyznacza kolejność Elo. |
+| Zmiana uczestników | Po wygenerowaniu terminarza Ligi Klasycznej nie można dodać gracza ani zmienić składu stałej pary. Do Ligi Nieskończonej można dołączyć w dowolnym momencie z ratingiem `1000`. |
 
-### P1 — wpływają głównie na interfejs
+### 30.2. Otwarte decyzje P1 — wpływają głównie na interfejs
 
-9. Czy imię, nazwisko i pseudonim są wszystkie obowiązkowe?
-10. Czy pseudonim musi być unikalny globalnie?
-11. Jakie formaty i maksymalny rozmiar awatara akceptujemy?
-12. Czy zakończenie ligi klasycznej następuje automatycznie po wpisaniu wszystkich wyników?
-13. Czy potrzebny jest ekran pokazujący miękko usunięte rekordy, czy odzyskanie odbywa się wyłącznie w bazie?
-14. Czy tabela ex aequo ma pokazywać ten sam numer miejsca?
+1. Czy imię, nazwisko i pseudonim są wszystkie obowiązkowe?
+2. Czy pseudonim musi być unikalny globalnie?
+3. Jakie formaty i maksymalny rozmiar awatara akceptujemy?
+4. Czy zakończenie ligi klasycznej następuje automatycznie po wpisaniu wszystkich wyników?
+5. Czy potrzebny jest ekran pokazujący miękko usunięte rekordy, czy odzyskanie odbywa się wyłącznie w bazie?
+6. Czy tabela ex aequo ma pokazywać ten sam numer miejsca?
 
 ## 31. Śledzenie zgodności ze specyfikacją bazową
 
@@ -1143,16 +1205,20 @@ Najwyższy priorytet:
 | Globalna baza graczy | sekcje 6 i 21 |
 | Singiel/debel | sekcje 7 i 10 |
 | Liga klasyczna z rewanżami i kolejkami | sekcja 8 |
+| Stałe pary w klasycznym deblu i indywidualny Elo w deblu nieskończonym | sekcje 8–10 |
+| Blokada zmian klasycznych uczestników i otwarte dołączanie do Elo | sekcje 7–10 |
 | Kolejki nie blokują wyników | sekcje 8 i 12 |
 | Liga nieskończona | sekcja 9 |
 | Best of 3 i dwa formaty setów | sekcja 11 |
+| Fast4 `4:3` i normalne `7:5`/`7:6` bez małych punktów tie-breaka | sekcje 11 i 21 |
 | Super tie-break lub pełny trzeci set | sekcja 11.3 |
 | Strukturalny wynik | sekcje 11.4 i 21 |
 | Punktacja 5/0 oraz 4/2 | sekcja 13 |
 | Tie-break tabeli: sety, potem gemy | sekcja 13.3 |
-| Start Elo 1000 i konfigurowalne K | sekcja 9 |
+| Start Elo 1000, K 32 w zakresie 10–60, zaokrąglenie i minimum 500 | sekcje 9, 14 i 21 |
+| Snapshot K bez retroakcji | sekcje 9, 21 i 24 |
+| Automatyczny czas pierwszego zapisu wyniku jako kolejność Elo | sekcje 9, 12, 21 i 24 |
 | Średnia Elo pary deblowej | sekcje 9.3 i 10 |
 | Asynchroniczne przeliczenie po edycji | sekcje 9.5 i 24 |
 | Jednolity formularz wyniku | sekcja 12 |
 | Turnieje poza zakresem | sekcja 3.2 |
-
