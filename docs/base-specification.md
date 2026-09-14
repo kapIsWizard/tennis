@@ -9,7 +9,7 @@ Na obecnym etapie aplikacja skupia się w 100% na kompleksowej obsłudze **Tenis
 ---
 
 ## 1. Założenia ogólne i Baza graczy
-* **Otwarty dostęp (Brak systemu uprawnień):** Wersja MVP aplikacji nie posiada systemu ról (brak podziału na administratorów i zwykłych użytkowników) ani konieczności logowania. Każda osoba, która wejdzie na stronę, ma pełen dostęp do wszystkich funkcji: może dowolnie przeglądać statystyki, dodawać nowych graczy, tworzyć ligi, a także wprowadzać i edytować wyniki meczów.
+* **Otwarty dostęp (Brak systemu uprawnień):** Wersja MVP aplikacji nie posiada systemu ról (brak podziału na administratorów i zwykłych użytkowników) ani konieczności logowania. Każda osoba, która wejdzie na stronę, ma pełen dostęp do wszystkich funkcji: może dowolnie przeglądać statystyki, dodawać nowych graczy, tworzyć ligi, a także wprowadzać i edytować wyniki meczów. Ze względu na ten otwarty model, wszelkie akcje usuwania (gracza, ligi, meczu) muszą być realizowane w bazie danych jako tzw. Soft Delete (ukrycie rekordu, bez fizycznego kasowania), aby zapobiec przypadkowej lub złośliwej utracie danych.
 * **Gotowość na nowe sporty (Future-Proofing):** System od początku musi wiedzieć, jakiego sportu dotyczy dany mecz/liga, aby prawidłowo dobrać formularz wyników i algorytmy przeliczania tabel.
 * **Jedna wspólna baza graczy:** Gracze dodawani są do systemu globalnie (Imię, nazwisko, pseudonim oraz możliwość wgrania awatara). Raz dodany gracz staje się częścią globalnego rejestru i może być przypisywany do wielu różnych lig w dowolnych dyscyplinach. 
 
@@ -25,7 +25,7 @@ Aby utworzyć nową ligę, użytkownik musi zdefiniować następujące parametry
 
 ## 3. Logika punktacji i wprowadzanie wyników (Tenis Ziemny)
 
-Mecze zawsze gramy do 2 wygranych setów (Best of 3). Formularz wprowadzania wyników musi być elastyczny i pozwalać na różne ustalenia na korcie:
+Mecze zawsze gramy do 2 wygranych setów (Best of 3). (Przypadki niedokończenia meczu z powodu kontuzji lub walkowera nie wymagają specjalnej logiki – wprowadzamy je do systemu jako normalnie zakończone wyniki). Formularz wprowadzania wyników musi być elastyczny i pozwalać na różne ustalenia na korcie:
 
 * **Długość standardowego seta (do wyboru przed meczem):**
     * **Sety krótkie (Fast4):** Gramy do 4 gemów (wygrana np. 4:1, 4:2, a przy stanie 3:3 jest tie-break).
@@ -46,12 +46,13 @@ Mecze zawsze gramy do 2 wygranych setów (Best of 3). Formularz wprowadzania wyn
   * Liczbę rozegranych meczów
   * Bilans wygranych do przegranych setów
   * Bilans wygranych do przegranych gemów
-  * *Zasada remisów:* W przypadku takiej samej liczby punktów o miejscu w tabeli decyduje bilans gemów.
+  * *Zasada remisów:* W przypadku takiej samej liczby punktów o miejscu w tabeli decyduje w pierwszej kolejności bilans setów, a później bilans gemów.
 
 * **W Lidze Nieskończonej (Ranking ELO):**
   * **Start:** Poziom bazowy (startowy) dla każdego gracza w nowej lidze wynosi **1000 punktów**.
   * **Konfigurowalny parametr K:** Osoba zakładająca ligę posiada w ustawieniach możliwość zmiany mnożnika `K`. Odpowiada on za to, jak duże będą wahania punktowe po pojedynczym meczu.
   * **Specyfika Debla:** W przypadku meczu deblowego system najpierw wylicza średnią punktów ELO dla obu graczy w Parze A oraz średnią dla Pary B. Na tej podstawie określa faworyta i wylicza ostateczną zmianę punktową. Wyliczona wartość (np. +15 punktów) jest następnie dopisywana lub odejmowana indywidualnie każdemu z 4 graczy biorących udział w meczu.
+  * **Edycja wyników (Przeliczanie historii):** Ponieważ każdy może edytować wynik meczu, zmiana danych w meczu historycznym musi automatycznie i asynchronicznie wymusić przeliczenie rankingu ELO od nowa dla wszystkich późniejszych spotkań w danej lidze.
 
 ## 5. Interfejs wprowadzania wyników (Formularz meczowy)
 
