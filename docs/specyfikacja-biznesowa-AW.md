@@ -20,7 +20,7 @@ Aby utworzyć nową ligę, użytkownik musi zdefiniować następujące parametry
 * **Tryb gry:** Singiel lub Debel.
 * **Uczestnicy:** Wybór graczy z globalnej listy.
 * **Format rozgrywek (dwa warianty do wyboru):**
-    1. **Liga Klasyczna (Round-Robin):** Gra "każdy z każdym". Przy tworzeniu zaznaczamy, czy liga ma być z rewanżami (każdy gra z każdym dwa razy). System od razu generuje pełną pulę meczów do rozegrania. Gracze wprowadzają wyniki z tych meczów **w dowolnej kolejności** (nie ma sztywnych terminów ani kolejek).
+    1. **Liga Klasyczna (Round-Robin):** Gra "każdy z każdym". Przy tworzeniu zaznaczamy, czy liga ma być z rewanżami (każdy gra z każdym dwa razy). System od razu generuje pełną pulę meczów do rozegrania i układa je w **proponowany harmonogram (kolejki)**. Harmonogram ten ma pomóc w równomiernym rozgrywaniu ligi przez wszystkich uczestników. Jest on jednak wyłącznie sugestią – **system nie wymusza i nie blokuje** wprowadzania wyników z "przyszłych" kolejek. Dzięki temu, jeśli ktoś wyjedzie na urlop lub złapie kontuzję, pozostali gracze mogą bez przeszkód grać swoje mecze, nie wstrzymując działania całej ligi.
     2. **Liga Nieskończona (Ranking ELO):** Brak z góry wygenerowanych meczów. Liga działa ad-hoc – gracze umawiają się na mecz, grają i wpisują wynik do systemu.
 
 ## 3. Logika punktacji i wprowadzanie wyników (Tenis Ziemny)
