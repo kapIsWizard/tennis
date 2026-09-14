@@ -1,9 +1,9 @@
-# Specyfikacja biznesowa platformy rozgrywek rakietowych
+# Specyfikacja biznesowa platformy rozgrywek sportowych
 
 **Wersja:** 0.3 — decyzje po drugim warsztacie  
 **Data:** 14 września 2026  
 **Status:** wymagania bazowe z częściowo zamkniętymi decyzjami produktowymi  
-**Nazwa robocza produktu:** Racket Club
+**Nazwa robocza produktu:** Low On Legs
 
 ---
 
