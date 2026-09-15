@@ -236,6 +236,19 @@ Automatyczne kopie zapasowe i sprawdzony proces odzyskania są wymaganiem urucho
 
 Procedura odzyskania powinna rozróżniać przywrócenie usuniętego rekordu, korektę według historycznej wersji meczu i odzyskanie całej bazy. Przywrócenie danych wpływających na Elo zwiększa rewizję i uruchamia pełne przeliczenie; nie kopiuje starych ratingów jako aktualnych. Przywrócenie ligi zachowuje terminarz i członkostwa. Operacje techniczne respektują unikalność pseudonimu, zależności i historię zmian. Nie powstaje publiczny ekran przywracania.
 
+### 12.1. Docker i przenośne wdrożenie
+
+Repozytorium MVP ma zawierać pliki umożliwiające zbudowanie i uruchomienie aplikacji na hostingu obsługującym kontenery:
+
+- Dockerfile z wieloetapowym budowaniem produkcyjnego obrazu. Obraz zawiera aplikację, worker i narzędzia migracji; aplikacja i worker działają jako osobne procesy w osobnych kontenerach z tej samej wersji obrazu.
+- .dockerignore wykluczający między innymi lokalne zależności, pliki Git i sekrety.
+- compose.yaml definiujący aplikację, worker, PostgreSQL z trwałym wolumenem oraz osobne jednorazowe zadanie migracji. Konfiguracja obejmuje kontrolę gotowości usług i restart procesów po awarii. Baza nie jest publicznie wystawiana przez domyślną konfigurację.
+- .env.example z opisem wymaganej konfiguracji, bez prawdziwych haseł. Sekrety są dostarczane przy wdrożeniu i nie trafiają do obrazu ani repozytorium.
+- Możliwość użycia zewnętrznej zarządzanej bazy PostgreSQL zamiast kontenera bazy, przez konfigurację połączenia. Aplikacja i worker korzystają z tej samej bazy.
+- Instrukcję wdrożenia opisującą budowanie obrazu, konfigurację, pierwsze uruchomienie, migracje przed startem nowej wersji, aktualizację aplikacji i workera, odczyt logów, sprawdzenie działania oraz wykonanie i odzyskanie kopii bazy. Trwały wolumen nie zastępuje kopii zapasowej.
+
+Instrukcja rozróżnia uruchomienie całego zestawu przez Compose na własnym serwerze i wdrożenie obrazu jako osobnych usług na platformie kontenerowej. Konfiguracja domeny, HTTPS i kopii zapasowych zależy od wybranego środowiska i musi być opisana przed uruchomieniem produkcyjnym. Nie wymagamy konkretnego dostawcy hostingu. Pliki Docker powstaną podczas implementacji; na etapie projektowania zapisujemy wymagania.
+
 ## 13. Weryfikacja i kryteria akceptacji
 
 Testy powstają przy odpowiednich funkcjach. Obowiązują testy szczegółowej specyfikacji §27 i kryteria §28 z korektami opisanymi w sekcji 2 oraz poniższymi przypadkami.
@@ -270,6 +283,10 @@ Testy powstają przy odpowiednich funkcjach. Obowiązują testy szczegółowej s
 Pełne scenariusze obejmują stworzenie graczy i każdej kombinacji ligi/trybu, wpisanie wyniku z przyszłej kolejki, poprawkę wyniku, automatyczne zakończenie ligi klasycznej, aktualizację Elo, zapis podczas przeliczania i błąd workera. Weryfikujemy mobilny formularz, klawiaturę, komunikaty i zachowanie danych po błędzie.
 
 Pomiar obejmuje pełną historię kilkuset spotkań, kolejkę oczekujących zadań i równoległe zapisy. Oddzielnie mierzymy czas obliczeń, oczekiwania na worker i publikacji; nie deklarujemy czasu końcowego na podstawie samej złożoności wzoru Elo. Dla terminarza weryfikujemy między innymi 30 singlistów z rewanżami, czyli 870 spotkań. Procedura kopii zapasowej wymaga próby odzyskania przed uruchomieniem produkcyjnym.
+
+### 13.4. Uruchomienie kontenerowe
+
+Z czystego checkoutu, po uzupełnieniu konfiguracji według instrukcji, można zbudować obraz, uruchomić bazę, wykonać migracje i uruchomić aplikację oraz worker. Próba obejmuje zapis meczu, korektę uruchamiającą worker oraz zachowanie danych po odtworzeniu kontenerów z istniejącym wolumenem. Oddzielnie sprawdzamy konfigurację połączenia z zewnętrzną bazą i brak sekretów w obrazie. Instrukcja oraz konfiguracja muszą pozwalać uruchomić zestaw bez lokalnie zainstalowanego Node.js.
 
 ## 14. Stan procesu projektowego
 
