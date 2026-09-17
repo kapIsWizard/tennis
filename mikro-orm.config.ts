@@ -1,12 +1,23 @@
 import { defineConfig } from '@mikro-orm/postgresql';
-import { SportSchema } from './src/db/entities';
+import {
+  ApplicationSettingSchema,
+  RateLimitBucketSchema,
+  RequestTokenSchema,
+  SportSchema,
+} from './src/db/entities';
 import { migrations } from './src/db/migrations';
 
 export function createOrmConfig(clientUrl: string, schema?: string) {
   return defineConfig({
     clientUrl,
     driverOptions: schema ? { options: `-c search_path=${schema}` } : undefined,
-    entities: [SportSchema],
+    pool: { max: 10 },
+    entities: [
+      SportSchema,
+      RequestTokenSchema,
+      ApplicationSettingSchema,
+      RateLimitBucketSchema,
+    ],
     schema,
     migrations: {
       migrationsList: migrations,
