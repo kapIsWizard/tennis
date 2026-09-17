@@ -28,7 +28,8 @@ export function getOrm(): Promise<MikroORM> {
 
 export async function withDb<T>(
   fn: (em: EntityManager) => Promise<T>,
+  orm?: MikroORM,
 ): Promise<T> {
-  const orm = await getOrm();
-  return fn(orm.em.fork());
+  const database = orm ?? (await getOrm());
+  return fn(database.em.fork());
 }

@@ -1,10 +1,11 @@
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { MikroORM } from '@mikro-orm/postgresql';
 import { getOrm } from './orm';
 
-export async function migrate(): Promise<void> {
-  const orm = await getOrm();
-  await orm.migrator.up();
+export async function migrate(orm?: MikroORM): Promise<void> {
+  const database = orm ?? (await getOrm());
+  await database.migrator.up();
 }
 
 async function run(): Promise<void> {

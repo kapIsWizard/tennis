@@ -5,6 +5,7 @@ import { migrations } from './src/db/migrations';
 export function createOrmConfig(clientUrl: string, schema?: string) {
   return defineConfig({
     clientUrl,
+    driverOptions: schema ? { options: `-c search_path=${schema}` } : undefined,
     entities: [SportSchema],
     schema,
     migrations: {

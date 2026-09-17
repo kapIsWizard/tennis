@@ -5,7 +5,7 @@ export const SportSchema = defineEntity({
   tableName: 'sports',
   properties: {
     id: p.uuid().primary(),
-    code: p.text().unique(),
+    code: p.text().unique().check("\"code\" in ('TENNIS')"),
     name: p.text(),
   },
 });

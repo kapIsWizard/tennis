@@ -10,7 +10,8 @@ export class Migration001Platform extends Migration {
         "code" text not null,
         "name" text not null,
         constraint "sports_pkey" primary key ("id"),
-        constraint "sports_code_unique" unique ("code")
+        constraint "sports_code_unique" unique ("code"),
+        constraint "sports_code_check" check ("code" in ('TENNIS'))
       );
     `);
     this.addSql(`
