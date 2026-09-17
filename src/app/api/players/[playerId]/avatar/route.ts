@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { NextRequest } from 'next/server';
 import { withDb } from '@/db/orm';
 import { setAvatar } from '@/modules/players/commands';
@@ -12,12 +12,14 @@ import {
   UPLOAD_BODY_LIMIT,
 } from '@/shared/limits';
 import { assertVersion } from '@/shared/mutation';
+import { logDomainError } from '@/shared/logger';
 import { consumeLimit } from '@/shared/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function errorResponse(error: unknown): Response {
+function errorResponse(error: unknown, startedAt: number): Response {
+  logDomainError(error, { requestId: randomUUID(), startedAt });
   if (!(error instanceof DomainError)) {
     return Response.json(
       { ok: false, code: 'INTERNAL_ERROR', message: 'Nie udało się zapisać awatara.' },
@@ -42,7 +44,7 @@ async function uploadClientKey(request: NextRequest): Promise<string> {
   const secret = process.env.CLIENT_KEY_HMAC_SECRET;
   if (!secret) throw new Error('CLIENT_KEY_HMAC_SECRET is required');
   return deriveClientKey({
-    remoteAddress: request.headers.get('x-real-ip') ?? '127.0.0.1',
+    remoteAddress: '127.0.0.1',
     forwardedFor: request.headers.get('x-forwarded-for'),
     trustProxy: process.env.TRUST_PROXY === 'true',
     secret,
@@ -53,6 +55,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ playerId: string }> },
 ): Promise<Response> {
+  const startedAt = Date.now();
   try {
     const expectedOrigin = process.env.APP_ORIGIN;
     if (!expectedOrigin) throw new Error('APP_ORIGIN is required');
@@ -68,8 +71,17 @@ export async function POST(
       headers: request.headers,
       body: Buffer.from(body),
     });
-    const formData = await parsedRequest.formData();
-    if ([...formData.keys()].some(key => !['avatar', 'expectedVersion'].includes(key))) {
+    let formData: FormData;
+    try {
+      formData = await parsedRequest.formData();
+    } catch {
+      throw new DomainError('VALIDATION');
+    }
+    const allowedFields = ['avatar', 'expectedVersion'];
+    if (
+      [...formData.keys()].some(key => !allowedFields.includes(key)) ||
+      allowedFields.some(key => formData.getAll(key).length !== 1)
+    ) {
       throw new DomainError('VALIDATION');
     }
     const file = formData.get('avatar');
@@ -78,6 +90,9 @@ export async function POST(
       throw new DomainError('VALIDATION');
     }
     const expectedVersion = Number(versionValue);
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 1) {
+      throw new DomainError('VALIDATION');
+    }
     const { playerId } = await context.params;
 
     const current = await withDb(em => getPlayer(em, playerId));
@@ -88,7 +103,7 @@ export async function POST(
     );
     return Response.json({ ok: true, value: result });
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(error, startedAt);
   }
 }
 
@@ -96,6 +111,7 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ playerId: string }> },
 ): Promise<Response> {
+  const startedAt = Date.now();
   try {
     const { playerId } = await context.params;
     const avatar = await withDb(em => getAvatar(em, playerId));
@@ -111,6 +127,6 @@ export async function GET(
     }
     return new Response(new Uint8Array(avatar.bytes), { status: 200, headers });
   } catch (error) {
-    return errorResponse(error);
+    return errorResponse(error, startedAt);
   }
 }

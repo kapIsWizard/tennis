@@ -35,7 +35,7 @@ async function consumeBrowserLimit(operation: string): Promise<void> {
   const secret = process.env.CLIENT_KEY_HMAC_SECRET;
   if (!secret) throw new Error('CLIENT_KEY_HMAC_SECRET is required');
   const clientKey = deriveClientKey({
-    remoteAddress: requestHeaders.get('x-real-ip') ?? '127.0.0.1',
+    remoteAddress: '127.0.0.1',
     forwardedFor: requestHeaders.get('x-forwarded-for'),
     trustProxy: process.env.TRUST_PROXY === 'true',
     secret,
@@ -133,7 +133,6 @@ export async function deletePlayerAction(
       }),
     );
     revalidatePath('/players');
-    redirect('/players');
   } catch (error) {
     const failed = failure(error, startedAt);
     return {
@@ -142,4 +141,5 @@ export async function deletePlayerAction(
       message: failed.message,
     };
   }
+  redirect('/players');
 }

@@ -26,7 +26,6 @@ const initialState: PlayerFormState = { status: 'idle' };
 
 export function PlayerForm({ action, mode, initialValues }: PlayerFormProps) {
   const [state, formAction, pending] = useActionState(action, initialState);
-  const [token, setToken] = useState('');
   const [version, setVersion] = useState(initialValues?.version ?? 0);
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -36,6 +35,7 @@ export function PlayerForm({ action, mode, initialValues }: PlayerFormProps) {
     nickname: initialValues?.nickname ?? '',
   }));
   const lastSubmitted = useRef<string | null>(null);
+  const tokenInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const storageKey = 'low-on-legs:create-player-token';
 
@@ -44,7 +44,7 @@ export function PlayerForm({ action, mode, initialValues }: PlayerFormProps) {
     const saved = sessionStorage.getItem(storageKey);
     const value = saved || crypto.randomUUID();
     sessionStorage.setItem(storageKey, value);
-    setToken(value);
+    if (tokenInput.current) tokenInput.current.value = value;
   }, [mode]);
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export function PlayerForm({ action, mode, initialValues }: PlayerFormProps) {
     if (fingerprint(event.currentTarget) !== lastSubmitted.current) {
       const nextToken = crypto.randomUUID();
       sessionStorage.setItem(storageKey, nextToken);
-      setToken(nextToken);
+      if (tokenInput.current) tokenInput.current.value = nextToken;
       lastSubmitted.current = null;
     }
   }
@@ -111,8 +111,6 @@ export function PlayerForm({ action, mode, initialValues }: PlayerFormProps) {
     }
   }
 
-  const values = initialValues ?? formValues;
-
   return (
     <div className="form-stack">
       <form
@@ -123,10 +121,10 @@ export function PlayerForm({ action, mode, initialValues }: PlayerFormProps) {
           lastSubmitted.current = fingerprint(event.currentTarget);
         }}
       >
-        {mode === 'create' ? <input name="token" type="hidden" value={token} /> : null}
+        {mode === 'create' ? <input name="token" ref={tokenInput} type="hidden" /> : null}
         {mode === 'edit' ? (
           <>
-            <input name="id" type="hidden" value={values.id} />
+            <input name="id" type="hidden" value={initialValues?.id} />
             <input name="expectedVersion" type="hidden" value={version} />
           </>
         ) : null}
@@ -176,13 +174,13 @@ export function PlayerForm({ action, mode, initialValues }: PlayerFormProps) {
           <div className="form-message error-message" role="alert">
             <p>{state.message}</p>
             {state.code === 'VERSION_CONFLICT' ? (
-              <button type="button" onClick={() => router.refresh()}>
+              <button type="button" onClick={() => window.location.reload()}>
                 Odśwież dane
               </button>
             ) : null}
           </div>
         ) : null}
-        <button disabled={pending || (mode === 'create' && !token)} type="submit">
+        <button disabled={pending} type="submit">
           {pending ? 'Zapisywanie…' : mode === 'create' ? 'Dodaj gracza' : 'Zapisz dane'}
         </button>
       </form>
