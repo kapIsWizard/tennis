@@ -1,6 +1,9 @@
 import type { ActionResult } from './contracts';
 
 const messages: Record<string, string> = {
+  NICKNAME_TAKEN: 'Ten pseudonim jest już zajęty.',
+  AVATAR_TOO_LARGE: 'Plik awatara jest zbyt duży.',
+  INVALID_AVATAR: 'Plik awatara musi być pojedynczym obrazem JPEG, PNG lub WebP.',
   VALIDATION: 'Popraw dane formularza.',
   VERSION_CONFLICT: 'Dane zostały zmienione. Odśwież stronę i spróbuj ponownie.',
   IDEMPOTENCY_CONFLICT: 'Ten identyfikator operacji został już użyty z innymi danymi.',

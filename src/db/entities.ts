@@ -1,5 +1,8 @@
 import { defineEntity, p } from '@mikro-orm/postgresql';
 
+export { PlayerAvatarSchema } from '@/modules/players/avatar.entity';
+export { PlayerSchema } from '@/modules/players/player.entity';
+
 export const SportSchema = defineEntity({
   name: 'Sport',
   tableName: 'sports',

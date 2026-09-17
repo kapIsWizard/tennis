@@ -5,6 +5,8 @@ import {
   RequestTokenSchema,
   SportSchema,
 } from './src/db/entities';
+import { PlayerAvatarSchema } from './src/modules/players/avatar.entity';
+import { PlayerSchema } from './src/modules/players/player.entity';
 import { migrations } from './src/db/migrations';
 
 export function createOrmConfig(clientUrl: string, schema?: string) {
@@ -17,12 +19,17 @@ export function createOrmConfig(clientUrl: string, schema?: string) {
       RequestTokenSchema,
       ApplicationSettingSchema,
       RateLimitBucketSchema,
+      PlayerSchema,
+      PlayerAvatarSchema,
     ],
     schema,
     migrations: {
       migrationsList: migrations,
       schema,
       snapshot: false,
+    },
+    schemaGenerator: {
+      ignoreRoutines: true,
     },
   });
 }

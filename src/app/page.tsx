@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
@@ -5,7 +7,10 @@ export default function Home() {
     <main>
       <p className="eyebrow">Amatorskie ligi tenisowe</p>
       <h1>Low on Legs</h1>
-      <p>Fundament aplikacji jest gotowy. Funkcje ligowe pojawią się w kolejnych etapach.</p>
+      <p>Zbuduj kartotekę graczy, a potem zaproś ich do wspólnej ligi.</p>
+      <Link className="button" href="/players">
+        Przejdź do graczy
+      </Link>
     </main>
   );
 }
