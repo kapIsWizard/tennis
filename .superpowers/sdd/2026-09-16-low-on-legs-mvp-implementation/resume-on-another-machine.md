@@ -4,23 +4,40 @@ Ten katalog jest zwykle ignorowany przez Git. Ten checkpoint celowo zawiera
 wyłącznie tekstowe materiały potrzebne do dalszej pracy: postęp, briefy,
 wymagania, raporty i notatki środowiskowe.
 
-## Stan kodu
+## Stan przy ostatniej aktualizacji
 
 - Gałąź: `feat/low-on-legs-mvp`.
 - Zadania 1–3 są ukończone i przeszły niezależny przegląd.
-- Zadanie 4, gracze i awatary, jest **niedokończone**. Kod oraz testy są
-  zapisane w commicie checkpointu, ale nie należy oznaczać zadania jako
-  ukończonego bez uruchomienia kontroli końcowych i przeglądu.
-- Najważniejszy zapis ciągłości: `progress.md`.
+- Zadanie 4, gracze i awatary, ma gotową implementację w commicie
+  `df9ae00 feat: manage players and avatars`.
+- Ostatnie potwierdzone kontrole zadania 4: 67 testów jednostkowych i
+  integracyjnych, 4 testy E2E, typecheck, lint oraz produkcyjna kompilacja —
+  wszystkie przeszły.
+- Niezależny przegląd zadania 4 jest w toku. Nie zaczynaj zadania 5, dopóki
+  jego wynik nie zostanie zapisany w `progress.md`.
+- Plik `progress.md` jest pełnym dziennikiem decyzji; ten dokument jest krótką
+  instrukcją szybkiego wznowienia.
+
+## Zasada aktualizacji checkpointu
+
+Przed każdym commitem checkpointu i po każdym istotnym zdarzeniu aktualizuj:
+
+1. ten plik — aktualny commit, etap, wynik testów i następny krok;
+2. `progress.md` — pełne wyniki, decyzje i otwarte ryzyka;
+3. raport danego zadania, gdy implementacja lub poprawka jest zakończona.
+
+Nie opisuj zadania jako ukończonego przed niezależnym przeglądem. Commit WIP
+jest prawidłowym punktem wznowienia, ale musi to być wyraźnie zapisane tutaj.
 
 ## Co przeczytać przed wznowieniem
 
 1. `progress.md`
 2. `task-4-brief.md`
 3. `task-4-environment-notes.md`
-4. `shared-requirements.md`
-5. `task-2-report.md` — opisuje kolejność limitów, tokenów i transakcji
-6. `task-3-report.md` — opisuje wspólny walidator wyniku tenisowego
+4. `task-4-report.md` — końcowe testy i konfiguracja E2E zadania 4
+5. `shared-requirements.md`
+6. `task-2-context.md` — kolejność limitów, tokenów i transakcji
+7. `task-3-report.md` — wspólny walidator wyniku tenisowego
 
 ## Środowisko na nowym komputerze
 
