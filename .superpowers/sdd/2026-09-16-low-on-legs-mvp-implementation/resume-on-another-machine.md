@@ -13,8 +13,14 @@ wymagania, raporty i notatki środowiskowe.
 - Ostatnie potwierdzone kontrole zadania 4: 67 testów jednostkowych i
   integracyjnych, 4 testy E2E, typecheck, lint oraz produkcyjna kompilacja —
   wszystkie przeszły.
-- Niezależny przegląd zadania 4 jest w toku. Nie zaczynaj zadania 5, dopóki
-  jego wynik nie zostanie zapisany w `progress.md`.
+- Niezależny przegląd zadania 4 zakończył się wynikiem **wymaga poprawek**.
+  Nie zaczynaj zadania 5.
+- Otwarte poprawki zadania 4: zachować token przy ponowieniu niezmienionego
+  formularza po błędzie, poprawić politykę cache awatara, dodać akcję
+  odświeżenia przy konfliktach uploadu/usunięcia oraz nazwać dialog dla
+  czytników ekranu. Dodatkowa poprawka: polskie komunikaty walidacji pól.
+- Pełny opis oraz lokalizacje kodu są w ostatnim wyniku przeglądu i zostaną
+  dopisane do `progress.md` przed następnym checkpointem.
 - Plik `progress.md` jest pełnym dziennikiem decyzji; ten dokument jest krótką
   instrukcją szybkiego wznowienia.
 
