@@ -35,11 +35,26 @@ test('pokazuje konflikt pseudonimu i zachowuje formularz', async ({ page }) => {
 
   await expect(page.getByText('Ten pseudonim jest już zajęty.')).toBeVisible();
   await expect(page.getByLabel('Pseudonim')).toHaveValue('  zajęty nick  ');
+  await expect(page.locator('input[name="token"]')).toHaveValue(
+    tokenBeforeSubmit ?? '',
+  );
   expect(
     await page.evaluate(() =>
       sessionStorage.getItem('low-on-legs:create-player-token'),
     ),
   ).toBe(tokenBeforeSubmit);
+
+  const unchangedRetry = page.waitForResponse(
+    response =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/players/new',
+  );
+  await page.getByRole('button', { name: 'Dodaj gracza' }).click();
+  await unchangedRetry;
+  await expect(page.getByText('Ten pseudonim jest już zajęty.')).toBeVisible();
+  await expect(page.locator('input[name="token"]')).toHaveValue(
+    tokenBeforeSubmit ?? '',
+  );
 
   await page.getByLabel('Pseudonim').fill('Nowa próba');
   expect(
@@ -56,6 +71,9 @@ test('potwierdza usunięcie klawiaturą', async ({ page }) => {
   await expect(page).toHaveURL(/\/players\/[0-9a-f-]+$/);
 
   await page.getByRole('button', { name: 'Usuń gracza' }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Usunąć gracza?' }),
+  ).toBeVisible();
   const confirm = page.getByRole('button', { name: 'Potwierdź usunięcie' });
   await confirm.focus();
   await page.keyboard.press('Enter');
@@ -100,6 +118,7 @@ test('odrzuca obcy origin i udostępnia wyłącznie przetworzony awatar WebP', a
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toBe('image/webp');
   expect(response.headers()['x-content-type-options']).toBe('nosniff');
+  expect(response.headers()['cache-control']).toBe('public, no-cache');
   const etag = response.headers().etag;
   expect(etag).toBeTruthy();
   const output = await response.body();
@@ -114,4 +133,68 @@ test('odrzuca obcy origin i udostępnia wyłącznie przetworzony awatar WebP', a
     headers: { 'If-None-Match': etag },
   });
   expect(cached.status()).toBe(304);
+
+  const missing = await page.request.get(
+    '/api/players/00000000-0000-4000-8000-000000000404/avatar',
+  );
+  expect(missing.status()).toBe(404);
+  expect(missing.headers()['cache-control']).toBe('no-store');
+});
+
+test('konflikty wersji awatara i usunięcia pokazują akcję odświeżenia', async ({
+  page,
+}) => {
+  const source = await sharp({
+    create: { width: 40, height: 20, channels: 3, background: 'teal' },
+  })
+    .png()
+    .toBuffer();
+
+  await page.goto('/players/new');
+  await fillPlayer(page, 'Konflikt Awatara');
+  await page.getByRole('button', { name: 'Dodaj gracza' }).click();
+  await expect(page).toHaveURL(/\/players\/[0-9a-f-]+$/);
+  const avatarPlayerId = new URL(page.url()).pathname.split('/').at(-1)!;
+  await page.goto(`/players/${avatarPlayerId}/edit`);
+  const externalAvatar = await page.request.post(
+    `/api/players/${avatarPlayerId}/avatar`,
+    {
+      headers: { Origin: 'http://127.0.0.1:3100' },
+      multipart: {
+        expectedVersion: '1',
+        avatar: { name: 'external.png', mimeType: 'image/png', buffer: source },
+      },
+    },
+  );
+  expect(externalAvatar.status()).toBe(200);
+  await page.getByLabel('Plik awatara').setInputFiles({
+    name: 'stale.png',
+    mimeType: 'image/png',
+    buffer: source,
+  });
+  await page.getByRole('button', { name: 'Zapisz awatar' }).click();
+  await expect(page.getByText(/Dane zostały zmienione/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Odśwież dane' })).toBeVisible();
+
+  await page.goto('/players/new');
+  await fillPlayer(page, 'Konflikt Usunięcia');
+  await page.getByRole('button', { name: 'Dodaj gracza' }).click();
+  await expect(page).toHaveURL(/\/players\/[0-9a-f-]+$/);
+  const deletePlayerId = new URL(page.url()).pathname.split('/').at(-1)!;
+  const externalChange = await page.request.post(
+    `/api/players/${deletePlayerId}/avatar`,
+    {
+      headers: { Origin: 'http://127.0.0.1:3100' },
+      multipart: {
+        expectedVersion: '1',
+        avatar: { name: 'external.png', mimeType: 'image/png', buffer: source },
+      },
+    },
+  );
+  expect(externalChange.status()).toBe(200);
+  await page.getByRole('button', { name: 'Usuń gracza' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Usunąć gracza?' });
+  await dialog.getByRole('button', { name: 'Potwierdź usunięcie' }).click();
+  await expect(dialog.getByText(/Dane zostały zmienione/)).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Odśwież dane' })).toBeVisible();
 });

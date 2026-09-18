@@ -75,7 +75,19 @@ test('waliduje i przycina dane gracza, odrzucając puste i nadmiarowe pola', asy
         token: randomUUID(),
         data: { firstName: ' ', lastName: 'Nowak', nickname: 'inny' },
       }),
-    ).rejects.toMatchObject({ code: 'VALIDATION' });
+    ).rejects.toMatchObject({
+      code: 'VALIDATION',
+      fields: { firstName: 'Podaj imię.' },
+    });
+    await expect(
+      createPlayer(em, {
+        token: randomUUID(),
+        data: { firstName: 'Adam', lastName: 'Nowak', nickname: 'x'.repeat(41) },
+      }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION',
+      fields: { nickname: 'Pseudonim może mieć maksymalnie 40 znaków.' },
+    });
     await expect(
       createPlayer(em, {
         token: randomUUID(),
